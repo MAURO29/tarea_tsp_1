@@ -1,4 +1,13 @@
-class Cinematica:
+import math
+
+import numpy as np
+
+from sympy import *
+
+from Tabla_DH import *
+
+
+class Cinematica(tablaDH):
 	'''
 	Los parámetros Denavit-Hartenberg  resuelven en robótica la cinemática directa.
     
@@ -38,12 +47,13 @@ class Cinematica:
 	de 4x4 llamada "Matriz de transformación homogénea".
 
 	'''
-		
+ 	
 
 
-	def compute_dh(self,theta, d, a, alpha):
+	def compute_dh(self):
+
 		'''
-		Método que permite calcular la matriz de transformación homogénea.
+		Método que permite calcular la matriz de transformación homogénea simbolicamente.
 
 		Aplicando las 4 transformaciones de traslación y rotación, determina una 
 		matriz de 4x4 cuyos parámetros son:
@@ -52,32 +62,70 @@ class Cinematica:
 		distancia en x: Traslación en metros, in, ft, etc; del tipo int, float, double.
 		alpha: Ángulo de rotación en radianes del tipo int, float o double.
 		'''
-		import numpy as np
-		import math
-		self.theta=theta*math.pi/180
-		self.distancia_en_z=d
-		self.distancia_en_x=a
-		self.alpha=alpha*math.pi/180
+		matriz_theta= np.array([
+			[cos(tablaDH.theta),- sin(tablaDH.theta),0,0],
+			[sin(tablaDH.theta), cos(tablaDH.theta),0,0],
+			[0,0,1,0],
+			[0,0,0,1]
+			])
+		matriz_distanciaZ=np.array([
+			[1, 0, 0, 0],
+			[0, 1, 0, 0],
+			[0, 0, 1, tablaDH.d],
+			[0, 0, 0, 1]])
+		matriz_distanciaX=np.array([
+			[1, 0, 0, tablaDH.a],
+			[0, 1, 0, 0],
+			[0, 0, 1, 0],
+			[0, 0, 0, 1]
+			])
+		matriz_alpha=np.array([
+			[1,0,0,0],
+			[0, cos(tablaDH.alfa),-sin(tablaDH.alfa),0],
+			[0, sin(tablaDH.alfa), cos(tablaDH.alfa),0],
+			[0,0,0,1]
+			])
+		matrizDH=((matriz_theta.dot(matriz_distanciaZ)).dot(matriz_distanciaX)).dot(matriz_alpha)
 		
-		matriz_theta= np.array([[math.cos(self.theta),-  math.sin(self.theta),0,0],
-			                  [ math.sin(self.theta), math.cos(self.theta),0,0],
-			                  [0,0,1,0],
-			                  [0,0,0,1]])
-		matriz_distanciaZ=np.array([[1, 0, 0, 0],
-			                        [0, 1, 0, 0],
-			                        [0, 0, 1, self.distancia_en_z],
-			                        [0, 0, 0, 1]])
-		matriz_distanciaX=np.array([[1, 0, 0, self.distancia_en_x],
-			                        [0, 1, 0, 0],
-			                        [0, 0, 1, 0],
-			                        [0, 0, 0, 1]])
-		matriz_alpha=np.array([[1,0,0,0],
-			                  [0, math.cos(self.alpha),-  math.sin(self.alpha),0],
-			                  [0, math.sin(self.alpha),math.cos(self.alpha),0],
-			                  [0,0,0,1]])
-		matriz_TH=matriz_theta@matriz_distanciaZ@matriz_distanciaX@matriz_alpha
-		
-		return matriz_TH
+		print(matrizDH)
+
+	def matrizN(self, grados):
+		"""
+        Matriz de DH para n grados de libertad
+        """
+		tabla1=tablaDH()
+		tabla1.tabla()
+		matrizParcial=np.eye(4)
+		for i in range(0,grados):
+			costh=cos(tabla1.tabla[i,0])
+			sinth=sin(tabla1.tabla[i,0])
+			d=tabla1.tabla[i,1]
+			a=tabla1.tabla[i,2]
+			cosalp=cos(tabla1.tabla[i,3])
+			sinalp=sin(tabla1.tabla[i,3])
+
+			MatrizDH=np.array([
+				[costh,-sinth*cosalp,sinalp*sinth,a*costh],
+				[sinth,cosalp*costh,-sinalp*costh,a*sinth],
+				[0,sinalp,cosalp,d],
+				[0,0,0,1]
+				])
+			matrizParcial=matrizParcial.dot(MatrizDH)
+			j=i+1
+			print("Matriz ",i,"A",j)
+			print(MatrizDH)
+		for i in range(0,4):
+			for j in range(0,4):
+				matrizParcial[i,j]=trigsimp(matrizParcial[i,j])
+
+		self.A0n=matrizParcial
+		print("La matriz de transformación de la base al efector final 0A4 es:")
+		print(self.A0n)
+
+
+
+
+
 
 
 
